@@ -8,7 +8,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#1C2B2A">
+  <meta name="theme-color" content="#13213C">
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,17 +17,22 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     :root {
-      --latar: #EEF1EC; --tinta: #1C2B2A; --tinta-2: #55625F; --garis: #CBD3CD; --panel: #FFFFFF;
-      --sudut: #F2C230;
-      --datang: #2E7D4F; --telat: #C2410C; --pulang: #3B4FA8;
+      --latar: #EEF2F7; --panel: #FFFFFF; --tinta: #13213C; --tinta-2: #5B6782; --garis: #D5DCE8;
+      --navy: #13213C; --navy-2: #1E3060; --emas: #FFC53D;
+      --datang: #0E9F6E; --telat: #EA580C; --pulang: #4F46E5; --sudah: #56657F; --gagal: #DC2D4B;
       --tepi: clamp(14px, 3vw, 32px);
+      --bayang: 0 1px 2px rgba(19, 33, 60, .06), 0 8px 24px -12px rgba(19, 33, 60, .18);
     }
     @media (prefers-color-scheme: dark) {
-      :root { --latar: #142120; --tinta: #E6EDE8; --tinta-2: #9DB0AC; --garis: #2D403D; --panel: #1B2B29; }
+      :root {
+        --latar: #0B1220; --panel: #141D30; --tinta: #E8EDF7; --tinta-2: #9AA6BF; --garis: #26324A;
+        --navy: #1A2742; --navy-2: #24365E;
+        --bayang: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
+      }
     }
     * { box-sizing: border-box; }
     html { height: 100%; }
@@ -36,161 +41,210 @@
       background: var(--latar); color: var(--tinta);
       font: 16px/1.45 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
       padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+      -webkit-tap-highlight-color: transparent;
     }
+    body.mode-scan { background: #0B1220; color: #E8EDF7; }
     [hidden] { display: none !important; }
-    button { font: inherit; cursor: pointer; }
-    button:focus-visible, input:focus-visible, .foto:focus-within { outline: 3px solid var(--sudut); outline-offset: 2px; }
+    button { font: inherit; cursor: pointer; color: inherit; }
+    button:focus-visible, input:focus-visible, .foto:focus-within { outline: 3px solid var(--emas); outline-offset: 2px; }
+    svg { display: block; }
 
-    /* Pita offline */
-    .offline {
-      background: var(--telat); color: #fff; text-align: center; font-weight: 700; font-size: .92rem;
-      padding: 8px var(--tepi);
-    }
+    .offline { background: var(--telat); color: #fff; text-align: center; font-weight: 700; font-size: .9rem; padding: 8px var(--tepi); }
 
-    /* ===== Halaman 1: pengaturan ===== */
-    #hal1 {
-      max-width: 560px; margin: 0 auto; padding: 20px var(--tepi) 24px;
-      min-height: 100dvh; display: flex; flex-direction: column; gap: 16px;
-    }
-    .kepala { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    h1 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.15; }
-    .tanggal { color: var(--tinta-2); margin: 2px 0 0; }
-    .judul { font-weight: 700; margin: 0 0 8px; }
-
-    .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .mode button {
-      border: 0; border-radius: 16px; padding: clamp(18px, 3vw, 28px) 8px; font-weight: 800; font-size: clamp(1.2rem, 2.2vw, 1.5rem);
-      background: var(--panel); color: var(--tinta-2); box-shadow: inset 0 0 0 2px var(--garis);
-    }
-    .mode button[aria-pressed="true"].datang { background: var(--datang); color: #fff; box-shadow: none; }
-    .mode button[aria-pressed="true"].pulang { background: var(--pulang); color: #fff; box-shadow: none; }
-
-    .kartu { background: var(--panel); border-radius: 16px; padding: 16px 18px; box-shadow: inset 0 0 0 1.5px var(--garis); }
-    .batas-baris { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .jam-besar { font-size: clamp(2.2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
-    .ket { color: var(--tinta-2); font-size: .92rem; margin: 6px 0 0; }
-    .btn-garis { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--garis); }
-    .form-batas { margin-top: 14px; display: grid; gap: 4px; }
-    .form-batas label { font-weight: 700; font-size: .92rem; margin-top: 6px; }
-    .form-batas input { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--garis); background: var(--latar); color: var(--tinta); width: 100%; }
-    .aksi { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
-    .btn-isi { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; background: var(--tinta); color: var(--latar); }
-    .pesan-err { color: var(--telat); font-weight: 700; font-size: .9rem; min-height: 1.3em; margin: 6px 0 0; }
-    .status-data { margin: 0; }
-    .status-data strong { font-weight: 800; }
-    .info-data { color: var(--tinta-2); font-size: .92rem; margin: -6px 0 0; text-align: center; }
-
-    /* Tombol ikon: sinkron & ganti kamera */
+    /* Tombol ikon bulat */
     .ikon {
       position: relative; flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%;
       display: inline-grid; place-items: center; padding: 0;
-      background: var(--panel); color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--garis);
+      background: var(--panel); color: var(--tinta); box-shadow: var(--bayang);
     }
     .ikon svg { width: 22px; height: 22px; }
     .ikon:disabled { opacity: .5; cursor: wait; }
     .sinkron { color: var(--telat); }
     .jumlah {
-      position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px;
+      position: absolute; top: -3px; right: -3px; min-width: 20px; height: 20px; padding: 0 5px;
       border-radius: 999px; background: var(--telat); color: #fff;
-      font-size: .75rem; font-weight: 800; line-height: 20px; text-align: center;
+      font-size: .72rem; font-weight: 800; line-height: 20px; text-align: center;
+      box-shadow: 0 0 0 2px var(--latar);
     }
     .kanan { display: flex; align-items: center; gap: 8px; }
-    .baris-aksi { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
+    /* ================= HALAMAN 1 ================= */
+    #hal1 {
+      max-width: 560px; margin: 0 auto; padding: 16px var(--tepi) 24px;
+      min-height: 100dvh; display: flex; flex-direction: column; gap: 18px;
+    }
+    .bar-atas { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .merek { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
+    .merek img { width: 34px; height: 34px; border-radius: 10px; }
+    .btn-pasang { border: 0; border-radius: 999px; padding: 10px 14px; font-weight: 700; font-size: .9rem; background: var(--panel); box-shadow: var(--bayang); }
+
+    /* Kartu jam (pusat perhatian halaman depan) */
+    .hero {
+      position: relative; overflow: hidden; border-radius: 24px; padding: 22px 22px 20px;
+      background: var(--navy); color: #fff; box-shadow: var(--bayang);
+    }
+    .hero::after {
+      /* lingkaran matahari pagi samar di pojok */
+      content: ""; position: absolute; width: 220px; height: 220px; right: -70px; top: -90px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 197, 61, .32), rgba(255, 197, 61, 0) 70%);
+      pointer-events: none;
+    }
+    .tanggal { margin: 0; color: #C3CDE3; font-weight: 600; }
+    .jam { margin: 2px 0 14px; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; line-height: 1; }
+    #jamLive { font-size: clamp(3.6rem, 16vw, 6.2rem); font-weight: 800; letter-spacing: -0.04em; }
+    #detikLive { font-size: clamp(1.3rem, 5vw, 2rem); font-weight: 700; color: var(--emas); }
+    .batas-baris { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .pil-batas { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; background: rgba(255, 255, 255, .1); font-weight: 600; }
+    .pil-batas strong { font-weight: 800; color: var(--emas); font-variant-numeric: tabular-nums; }
+    .btn-ubah { border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 700; background: #fff; color: var(--navy); }
+    .status-batas { margin: 12px 0 0; font-size: .9rem; color: #C3CDE3; display: flex; align-items: center; gap: 8px; }
+    .status-batas::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--datang); flex: none; }
+    .status-batas.dekat::before { background: var(--emas); }
+    .status-batas.lewat::before { background: var(--telat); }
+    .status-batas.lewat { color: #FFD2B8; }
+
+    .form-batas { position: relative; z-index: 1; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .14); display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-batas label { display: grid; gap: 4px; font-weight: 700; font-size: .85rem; color: #C3CDE3; }
+    .form-batas input { font: inherit; color: #fff; padding: 10px 12px; border-radius: 12px; border: 1.5px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .08); width: 100%; color-scheme: dark; }
+    .pesan-err { grid-column: 1 / -1; color: #FFB4A8; font-weight: 700; font-size: .88rem; margin: 0; min-height: 1.2em; }
+    .aksi { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+    .aksi button { border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; }
+    .btn-batal { background: transparent; color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .3); }
+    .btn-simpan { background: var(--emas); color: var(--navy); }
+
+    /* Pilihan Datang / Pulang */
+    .judul { font-weight: 800; margin: 0 0 10px; font-size: 1.05rem; }
+    .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mode button {
+      --warna: var(--datang);
+      position: relative; border: 0; border-radius: 20px; padding: 16px; text-align: left;
+      background: var(--panel); box-shadow: var(--bayang), inset 0 0 0 2px transparent;
+      display: grid; gap: 10px; align-content: start; transition: box-shadow .15s, transform .15s;
+    }
+    .mode button.pulang { --warna: var(--pulang); }
+    .mode .ikon-mode { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, var(--warna) 14%, transparent); color: var(--warna); }
+    .mode .ikon-mode svg { width: 24px; height: 24px; }
+    .mode .nama-mode { font-weight: 800; font-size: 1.2rem; }
+    .mode .ket-mode { color: var(--tinta-2); font-size: .85rem; margin-top: -8px; }
+    .mode button[aria-pressed="true"] { box-shadow: var(--bayang), inset 0 0 0 2.5px var(--warna); background: color-mix(in srgb, var(--warna) 7%, var(--panel)); }
+    .mode .centang { position: absolute; top: 14px; right: 14px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--warna); color: #fff; opacity: 0; transform: scale(.6); transition: opacity .15s, transform .15s; }
+    .mode .centang svg { width: 14px; height: 14px; }
+    .mode button[aria-pressed="true"] .centang { opacity: 1; transform: none; }
+
+    /* Tombol scan */
     .btn-scan {
-      margin-top: auto; border: 0; border-radius: 18px; padding: 20px; font-weight: 800; font-size: clamp(1.2rem, 2.2vw, 1.5rem); color: #fff;
-      background: var(--datang);
+      --warna: var(--datang);
+      margin-top: auto; border: 0; border-radius: 22px; padding: 14px 18px 14px 14px; color: #fff;
+      background: var(--warna); box-shadow: 0 12px 28px -12px var(--warna);
+      display: flex; align-items: center; gap: 14px; font-weight: 800; font-size: clamp(1.15rem, 2.2vw, 1.35rem); text-align: left;
     }
-    .btn-scan.pulang { background: var(--pulang); }
-    .btn-scan:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-scan.pulang { --warna: var(--pulang); }
+    .btn-scan .kotak-qr { width: 52px; height: 52px; border-radius: 14px; background: rgba(255, 255, 255, .18); display: grid; place-items: center; flex: none; }
+    .btn-scan .kotak-qr svg { width: 28px; height: 28px; }
+    .btn-scan:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+    .info-data { color: var(--tinta-2); font-size: .9rem; margin: -6px 0 0; text-align: center; }
 
-    /* Tablet & laptop: pengaturan dalam dua kolom */
-    @media (min-width: 760px) {
-      #hal1 {
-        max-width: 980px; padding-top: 40px; display: grid; gap: 20px;
-        grid-template-columns: 1fr 1fr; align-content: start;
-        grid-template-areas: "kepala kepala" "mode batas" "scan scan" "info info";
-      }
-      .kepala { grid-area: kepala; }
-      .blok-mode { grid-area: mode; }
-      .kartu-batas { grid-area: batas; }
-      .info-data { grid-area: info; }
-      .btn-scan { grid-area: scan; margin-top: 8px; }
-      .kartu { padding: 20px 22px; }
-    }
     @media (hover: hover) {
-      .mode button:hover, .btn-garis:hover { box-shadow: inset 0 0 0 2px var(--tinta-2); }
-      .mode button[aria-pressed="true"]:hover { box-shadow: none; filter: brightness(1.06); }
-      .btn-scan:not(:disabled):hover, .btn-isi:hover { filter: brightness(1.08); }
+      .mode button:hover { transform: translateY(-1px); }
+      .btn-scan:not(:disabled):hover { filter: brightness(1.06); }
     }
 
-    /* ===== Halaman 2: scan ===== */
+    /* Tablet & laptop: dua kolom */
+    @media (min-width: 820px) {
+      #hal1 {
+        max-width: 1060px; padding-top: 28px; display: grid; gap: 22px 28px;
+        grid-template-columns: 1.15fr 1fr; align-content: start;
+        grid-template-areas: "atas atas" "hero pilih" "hero scan" "info info";
+      }
+      .bar-atas { grid-area: atas; }
+      .hero { grid-area: hero; padding: 32px; display: flex; flex-direction: column; justify-content: center; }
+      .blok-mode { grid-area: pilih; }
+      .btn-scan { grid-area: scan; margin-top: 0; align-self: end; padding: 18px 22px 18px 18px; }
+      .info-data { grid-area: info; }
+      .mode button { padding: 20px; }
+    }
+
+    /* ================= HALAMAN 2: SCAN ================= */
     #hal2 {
-      /* Lebar kamera menyesuaikan tinggi layar, jadi selalu muat tanpa scroll */
       --rasio: 3 / 4;
       --lebar: min(100%, calc((100dvh - 110px) * 3 / 4));
-      min-height: 100dvh; padding: 12px var(--tepi) 16px;
+      min-height: 100dvh; padding: 10px var(--tepi) 16px;
       display: flex; flex-direction: column; align-items: center; gap: 12px;
     }
     .scan-isi { width: var(--lebar); min-width: min(100%, 280px); display: flex; flex-direction: column; gap: 12px; }
-    .atas { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .atas { display: flex; align-items: center; gap: 8px; }
     .atas .kanan { margin-left: auto; }
-    .kembali { border: 0; background: none; color: var(--tinta); font-weight: 700; padding: 10px 4px; display: inline-flex; align-items: center; gap: 6px; }
+    .kembali { border: 0; background: rgba(255, 255, 255, .08); color: #fff; font-weight: 700; padding: 10px 16px 10px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
     .kembali svg { width: 20px; height: 20px; }
-    .chip { font-weight: 800; color: #fff; border-radius: 999px; padding: 6px 14px; background: var(--datang); }
+    .mode-scan .ikon { background: rgba(255, 255, 255, .1); color: #fff; box-shadow: none; }
+    .mode-scan .sinkron { color: #FFB27A; }
+    .mode-scan .jumlah { box-shadow: 0 0 0 2px #0B1220; }
+    .chip { font-weight: 800; color: #fff; border-radius: 999px; padding: 10px 16px; background: var(--datang); display: inline-flex; align-items: center; gap: 8px; }
+    .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
     .chip.pulang { background: var(--pulang); }
 
-    .bidik { position: relative; background: #0E1716; border-radius: 22px; overflow: hidden; aspect-ratio: var(--rasio); width: 100%; }
+    .bidik { position: relative; background: #050A14; border-radius: 26px; overflow: hidden; aspect-ratio: var(--rasio); width: 100%; container-type: size; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06); }
     #reader { width: 100%; height: 100%; }
     #reader video { width: 100% !important; height: 100% !important; object-fit: cover; }
     .bidik.cermin #reader video { transform: scaleX(-1); }
-    .sudut { position: absolute; width: 40px; height: 40px; border: 5px solid var(--sudut); pointer-events: none; }
-    /* Bingkai bidik selalu persegi di tengah, berapa pun bentuk layarnya */
-    .bidik { container-type: size; }
     .bingkai {
-      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;
-      width: 70%; height: 70%;
-      width: min(70cqw, 70cqh); height: min(70cqw, 70cqh);
+      position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); pointer-events: none;
+      width: 68%; height: 68%; width: min(68cqw, 62cqh); height: min(68cqw, 62cqh);
+      border-radius: 28px; box-shadow: 0 0 0 100vmax rgba(5, 10, 20, .38);
     }
-    .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
-    .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
-    .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
-    .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
+    .sudut { position: absolute; width: 44px; height: 44px; border: 5px solid var(--emas); }
+    .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 28px; }
+    .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 28px; }
+    .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 28px; }
+    .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 28px; }
+    .bidik:not(.aktif) .bingkai { box-shadow: none; }
 
-    .mulai { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; text-align: center; color: #C9D6D2; padding: 24px; }
+    .mulai { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; text-align: center; color: #C3CDE3; padding: 24px; z-index: 1; }
     .bidik.aktif .mulai { display: none; }
     #mulaiTeks { max-width: 34ch; }
-    .mulai button, .mulai .foto { border: 0; border-radius: 12px; padding: 12px 20px; font-weight: 700; background: var(--sudut); color: #1C2B2A; }
-    .mulai .foto { background: transparent; color: #E6EDE8; box-shadow: inset 0 0 0 2px #C9D6D2; position: relative; cursor: pointer; }
+    .mulai button, .mulai .foto { border: 0; border-radius: 999px; padding: 12px 20px; font-weight: 700; background: var(--emas); color: var(--navy); }
+    .mulai .foto { background: transparent; color: #fff; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .4); position: relative; cursor: pointer; }
     .mulai .foto input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 
-    .hasil { position: absolute; left: 12px; right: 12px; bottom: 12px; border-radius: 16px; padding: clamp(12px, 2vw, 20px) clamp(14px, 2.4vw, 24px); color: #fff; }
-    .hasil.Datang { background: var(--datang); }
-    .hasil.Terlambat { background: var(--telat); }
-    .hasil.Pulang { background: var(--pulang); }
-    .hasil.Gagal { background: #7A1F1F; }
-    .hasil.Sudah { background: #8A6A00; }
-    .hasil .status { font-size: clamp(1.4rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; margin: 0; }
-    .hasil .nama { font-size: clamp(1.1rem, 2.2vw, 1.6rem); font-weight: 800; margin: 6px 0 0; word-break: break-word; }
-    .hasil .meta { margin: 2px 0 0; opacity: .85; font-size: clamp(.85rem, 1.4vw, 1rem); }
-
-    /* Layar mendatar (laptop, tablet mendatar, HP mendatar): kamera 4:3 */
-    @media (orientation: landscape) {
-      #hal2 { --rasio: 4 / 3; --lebar: min(100%, calc((100dvh - 100px) * 4 / 3)); }
+    /* Notifikasi hasil scan */
+    .hasil {
+      --warna: var(--datang);
+      position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2;
+      display: flex; align-items: center; gap: 14px;
+      padding: clamp(14px, 2vw, 20px); border-radius: 22px; color: #fff;
+      background: var(--warna);
+      box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .18);
     }
-    /* Layar tegak (HP, tablet tegak): kamera mengisi sisa tinggi layar */
+    .hasil.Terlambat { --warna: var(--telat); }
+    .hasil.Pulang { --warna: var(--pulang); }
+    .hasil.Sudah { --warna: var(--sudah); }
+    .hasil.Gagal { --warna: var(--gagal); }
+    .hasil-ikon { flex: none; width: clamp(52px, 7vw, 68px); height: clamp(52px, 7vw, 68px); border-radius: 50%; background: #fff; color: var(--warna); display: grid; place-items: center; }
+    .hasil-ikon svg { width: 55%; height: 55%; }
+    .hasil-teks { min-width: 0; display: grid; gap: 6px; }
+    .hasil-nama { font-size: clamp(1.25rem, 2.6vw, 1.9rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+    .hasil-baris { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hasil-kelas { border-radius: 999px; padding: 3px 10px; background: rgba(255, 255, 255, .22); font-weight: 700; font-size: .9rem; }
+    .hasil-ket { font-weight: 800; font-size: clamp(1rem, 1.8vw, 1.2rem); }
+    .hasil.muncul { animation: muncul .22s cubic-bezier(.2, .9, .3, 1.2); }
+    @keyframes muncul { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .hasil.muncul { animation: none; }
+      .mode button, .mode .centang { transition: none; }
+    }
+
     @media (orientation: portrait) {
       #hal2 { --lebar: min(100%, 900px); }
-      .bidik {
-        aspect-ratio: auto;
-        height: calc(100dvh - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-        min-height: 320px;
-      }
+      .bidik { aspect-ratio: auto; height: calc(100dvh - 92px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); min-height: 320px; }
+    }
+    @media (orientation: landscape) {
+      #hal2 { --rasio: 4 / 3; --lebar: min(100%, calc((100dvh - 96px) * 4 / 3)); }
     }
     @media (orientation: landscape) and (max-height: 520px) {
-      #hal2 { --lebar: min(100%, calc((100dvh - 70px) * 4 / 3)); padding-top: 6px; padding-bottom: 6px; gap: 6px; }
+      #hal2 { --lebar: min(100%, calc((100dvh - 66px) * 4 / 3)); padding-top: 6px; padding-bottom: 6px; gap: 6px; }
       .scan-isi { gap: 6px; }
-      .hasil .status { font-size: 1.3rem; }
+      .hasil-nama { font-size: 1.15rem; }
+      .hasil-ikon { width: 44px; height: 44px; }
     }
   </style>
 </head>
@@ -198,48 +252,58 @@
 
 <div class="offline" id="pitaOffline" role="status" hidden>Tidak ada sinyal. Scan tetap jalan dan disimpan di perangkat ini.</div>
 
-<!-- ================= HALAMAN 1: PENGATURAN ================= -->
+<!-- ================= HALAMAN 1 ================= -->
 <section id="hal1">
-  <header class="kepala">
-    <div>
-      <h1>Presensi siswa</h1>
-      <p class="tanggal" id="tanggal"></p>
-    </div>
+  <header class="bar-atas">
+    <div class="merek"><img src="icon-192.png" alt="" onerror="this.remove()">Presensi Siswa</div>
     <div class="kanan">
-      <button class="btn-garis" id="btnPasang" hidden>Pasang aplikasi</button>
+      <button class="btn-pasang" id="btnPasang" hidden>Pasang aplikasi</button>
       <button class="ikon sinkron" id="sinkron1" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span class="jumlah"></span></button>
     </div>
   </header>
 
-  <div class="blok-mode">
-    <p class="judul">Jenis presensi</p>
-    <div class="mode" role="group" aria-label="Jenis presensi">
-      <button class="datang" id="mDatang" aria-pressed="true">Datang</button>
-      <button class="pulang" id="mPulang" aria-pressed="false">Pulang</button>
-    </div>
-  </div>
-
-  <div class="kartu kartu-batas">
-    <p class="judul">Batas jam datang</p>
+  <div class="hero">
+    <p class="tanggal" id="tanggal"></p>
+    <div class="jam" aria-live="off"><span id="jamLive">--:--</span><span id="detikLive">--</span></div>
     <div class="batas-baris">
-      <span class="jam-besar" id="jamBatas">--:--</span>
-      <button class="btn-garis" id="btnUbah">Ubah batas</button>
+      <span class="pil-batas">Batas datang <strong id="jamBatas">--:--</strong></span>
+      <button class="btn-ubah" id="btnUbah">Ubah</button>
     </div>
-    <p class="ket">Siswa yang scan Datang setelah jam ini tercatat Terlambat.</p>
+    <p class="status-batas" id="statusBatas"></p>
+
     <div class="form-batas" id="formBatas" hidden>
-      <label for="inJam">Jam baru</label>
-      <input type="time" id="inJam">
-      <label for="inPin">PIN admin</label>
-      <input type="password" id="inPin" inputmode="numeric" autocomplete="off">
+      <label>Jam baru<input type="time" id="inJam"></label>
+      <label>PIN admin<input type="password" id="inPin" inputmode="numeric" autocomplete="off"></label>
       <p class="pesan-err" id="errBatas"></p>
       <div class="aksi">
-        <button class="btn-garis" id="btnBatal">Batal</button>
-        <button class="btn-isi" id="btnSimpan">Simpan batas</button>
+        <button class="btn-batal" id="btnBatal">Batal</button>
+        <button class="btn-simpan" id="btnSimpan">Simpan batas</button>
       </div>
     </div>
   </div>
 
-  <button class="btn-scan" id="btnScan" disabled>Mulai scan Datang</button>
+  <div class="blok-mode">
+    <p class="judul">Jenis presensi</p>
+    <div class="mode" role="group" aria-label="Jenis presensi">
+      <button class="datang" id="mDatang" aria-pressed="true">
+        <span class="ikon-mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg></span>
+        <span class="nama-mode">Datang</span>
+        <span class="ket-mode">Siswa tiba di sekolah</span>
+        <span class="centang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </button>
+      <button class="pulang" id="mPulang" aria-pressed="false">
+        <span class="ikon-mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+        <span class="nama-mode">Pulang</span>
+        <span class="ket-mode">Siswa meninggalkan sekolah</span>
+        <span class="centang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </button>
+    </div>
+  </div>
+
+  <button class="btn-scan" id="btnScan" disabled>
+    <span class="kotak-qr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg></span>
+    <span id="labelScan">Mulai scan Datang</span>
+  </button>
   <p class="info-data" id="statusData" role="status">Mengunduh data siswa…</p>
 </section>
 
@@ -268,9 +332,8 @@
           <input type="file" id="inFoto" accept="image/*" capture="environment">
         </label>
       </div>
-      <div class="hasil" id="hasil" aria-live="assertive" hidden></div>
+      <div class="hasil" id="hasil" role="status" aria-live="assertive" hidden></div>
     </div>
-
   </div>
 </section>
 
@@ -355,7 +418,7 @@
       if (!m.has(it.qr)) m.set(it.qr, { ket: it.ket, jam: it.jam });
     });
     hariIni = { tanggal: d.tanggal, datang, pulang };
-    $('jamBatas').textContent = batas;
+    setTimeout(perbaruiJam, 0);
   }
 
   function simpanCache(siswaList) {
@@ -384,8 +447,24 @@
   } catch (e) {}
 
   /* ================= HALAMAN 1 ================= */
-  $('tanggal').textContent = new Date().toLocaleDateString('id-ID',
-    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  /* Jam besar di halaman depan (memakai jam server, zona sekolah) */
+  function perbaruiJam() {
+    const t = sekarang();
+    $('jamLive').textContent = jamMenit(t);
+    $('detikLive').textContent = jamDetik(t).slice(6);
+    $('tanggal').textContent = new Intl.DateTimeFormat('id-ID',
+      { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(t);
+    $('jamBatas').textContent = batas;
+
+    const [h, m] = jamMenit(t).split(':').map(Number);
+    const [bh, bm] = batas.split(':').map(Number);
+    const sisa = (bh * 60 + bm) - (h * 60 + m);
+    const el = $('statusBatas');
+    if (sisa < 0) { el.textContent = 'Lewat batas: scan datang tercatat terlambat'; el.className = 'status-batas lewat'; }
+    else if (sisa <= 60) { el.textContent = sisa === 0 ? 'Menit terakhir sebelum batas' : `${sisa} menit lagi menuju batas`; el.className = 'status-batas dekat'; }
+    else { el.textContent = 'Masih jauh dari batas jam datang'; el.className = 'status-batas'; }
+  }
+  setInterval(perbaruiJam, 1000);
 
   let mode = bacaLokal('modePresensi', 'datang');
   function setMode(m) {
@@ -394,7 +473,7 @@
     $('mDatang').setAttribute('aria-pressed', m === 'datang');
     $('mPulang').setAttribute('aria-pressed', m === 'pulang');
     const label = m === 'pulang' ? 'Pulang' : 'Datang';
-    $('btnScan').textContent = 'Mulai scan ' + label;
+    $('labelScan').textContent = 'Mulai scan ' + label;
     $('btnScan').className = 'btn-scan ' + m;
     $('chipMode').textContent = label;
     $('chipMode').className = 'chip ' + m;
@@ -430,7 +509,7 @@
 
 
   $('btnUbah').onclick = () => {
-    $('inJam').value = /\d\d:\d\d/.test($('jamBatas').textContent) ? $('jamBatas').textContent : '07:00';
+    $('inJam').value = batas || '07:00';
     $('inPin').value = ''; $('errBatas').textContent = '';
     $('formBatas').hidden = false; $('btnUbah').hidden = true;
     $('inJam').focus();
@@ -442,7 +521,7 @@
     try {
       const r = await panggil('setBatas', { jam: $('inJam').value, pin: $('inPin').value });
       batas = r.batas;
-      $('jamBatas').textContent = r.batas;
+      perbaruiJam();
       simpanCache();
       $('btnBatal').onclick();
     } catch (err) {
@@ -465,6 +544,8 @@
     if (location.hash === '#scan' && !diScan) { location.hash = ''; return; }
     $('hal1').hidden = diScan;
     $('hal2').hidden = !diScan;
+    document.body.classList.toggle('mode-scan', diScan);
+    document.querySelector('meta[name="theme-color"]').content = diScan ? '#0B1220' : '#13213C';
     window.scrollTo(0, 0);
     if (diScan) nyalakan(); else { matikan(); perbaruiStatusData(); muatAwal(); }
   }
@@ -625,7 +706,7 @@
       const r = await buatScanner().scanFileV2(file, false);
       saatTerbaca(r.decodedText);
     } catch (err) {
-      tampilHasil('Gagal', 'QR tidak terbaca', '', 'Foto ulang lebih dekat, terang, dan tidak buram.');
+      tampilHasil('Gagal', 'Foto ulang lebih dekat dan terang', 'QR tidak terbaca', '');
     }
   };
 
@@ -638,18 +719,17 @@
 
     const sw = siswaMap.get(no);
     if (!sw) {
-      tampilHasil('Gagal', 'Tidak terdaftar', 'No Induk ' + no, 'Tidak ada di Data Siswa, jadi tidak dicatat.');
+      tampilHasil('Gagal', 'Tidak terdaftar', no, '');
       bunyi(220); getar([80, 60, 80]);
       return;
     }
 
     cekGantiHari();
     const daftar = mode === 'pulang' ? hariIni.pulang : hariIni.datang;
-    const baris = sw.panggilan + (sw.kelas ? ' · ' + sw.kelas : '');
 
     const lama = daftar.get(no);
     if (lama) {
-      tampilHasil('Sudah', 'Sudah presensi ' + mode, baris, `${sw.nama} · tercatat ${lama.ket} pukul ${lama.jam}`);
+      tampilHasil('Sudah', 'Sudah presensi ' + mode, sw.nama, sw.kelas);
       bunyi(440); setTimeout(() => bunyi(440), 180); getar([60, 60, 60]);
       return;
     }
@@ -665,22 +745,35 @@
     perbaruiInfoAntrean();
     kirimAntrean();
 
-    const label = { Datang: 'Datang tepat waktu', Terlambat: 'Terlambat', Pulang: 'Pulang' }[ket];
-    tampilHasil(ket, label, baris, `${sw.nama} · ${no} · ${jam}`);
+    tampilHasil(ket, ket, sw.nama, sw.kelas);
     bunyi(880); getar(60);
     if (ket === 'Terlambat') setTimeout(() => bunyi(330), 160);
   }
 
+  /* ---------- Notifikasi hasil: Nama · Kelas · Keterangan ---------- */
+  const IKON = {
+    Datang:    '<path d="M20 6 9 17l-5-5"/>',
+    Terlambat: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    Pulang:    '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+    Sudah:     '<path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>',
+    Gagal:     '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+  };
+
   let timerHasil;
-  function tampilHasil(kelas, status, nama, meta) {
+  function tampilHasil(jenis, keterangan, nama, kelas) {
     const el = $('hasil');
-    el.className = 'hasil ' + kelas;
-    el.innerHTML = '';
-    const s = document.createElement('p'); s.className = 'status'; s.textContent = status;
-    const q = document.createElement('p'); q.className = 'nama'; q.textContent = nama;
-    const m = document.createElement('p'); m.className = 'meta'; m.textContent = meta;
-    el.append(s, q, m);
+    el.className = 'hasil ' + jenis;
+    el.innerHTML =
+      '<span class="hasil-ikon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IKON[jenis] + '</svg></span>' +
+      '<span class="hasil-teks"><span class="hasil-nama"></span>' +
+      '<span class="hasil-baris"><span class="hasil-kelas"></span><span class="hasil-ket"></span></span></span>';
+    el.querySelector('.hasil-nama').textContent = nama;
+    el.querySelector('.hasil-kelas').textContent = kelas ? 'Kelas ' + kelas : '';
+    el.querySelector('.hasil-kelas').hidden = !kelas;
+    el.querySelector('.hasil-ket').textContent = keterangan;
     el.hidden = false;
+    el.classList.remove('muncul'); void el.offsetWidth; el.classList.add('muncul');
     clearTimeout(timerHasil);
     timerHasil = setTimeout(() => { el.hidden = true; }, LAMA_HASIL_MS);
   }
@@ -729,6 +822,7 @@
   }
   perbaruiInfoAntrean();
   perbaruiStatusData();
+  perbaruiJam();
   tampilkanHalaman();                          // di halaman 1 sekaligus memuat data
   if (location.hash === '#scan') muatAwal();
   kirimAntrean();
