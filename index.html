@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Presensi Siswa</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1C2B2A">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Presensi">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --latar: #EEF1EC; --tinta: #1C2B2A; --tinta-2: #55625F; --garis: #CBD3CD; --panel: #FFFFFF;
+      --sudut: #F2C230;
+      --datang: #2E7D4F; --telat: #C2410C; --pulang: #3B4FA8;
+      --tepi: clamp(14px, 3vw, 32px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --latar: #142120; --tinta: #E6EDE8; --tinta-2: #9DB0AC; --garis: #2D403D; --panel: #1B2B29; }
+    }
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0; min-height: 100%; min-height: 100dvh;
+      background: var(--latar); color: var(--tinta);
+      font: 16px/1.45 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    }
+    [hidden] { display: none !important; }
+    button { font: inherit; cursor: pointer; }
+    button:focus-visible, input:focus-visible, .foto:focus-within { outline: 3px solid var(--sudut); outline-offset: 2px; }
+
+    /* Pita offline */
+    .offline {
+      background: var(--telat); color: #fff; text-align: center; font-weight: 700; font-size: .92rem;
+      padding: 8px var(--tepi);
+    }
+
+    /* ===== Halaman 1: pengaturan ===== */
+    #hal1 {
+      max-width: 560px; margin: 0 auto; padding: 20px var(--tepi) 24px;
+      min-height: 100dvh; display: flex; flex-direction: column; gap: 16px;
+    }
+    .kepala { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    h1 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.15; }
+    .tanggal { color: var(--tinta-2); margin: 2px 0 0; }
+    .judul { font-weight: 700; margin: 0 0 8px; }
+
+    .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mode button {
+      border: 0; border-radius: 16px; padding: clamp(18px, 3vw, 28px) 8px; font-weight: 800; font-size: clamp(1.2rem, 2.2vw, 1.5rem);
+      background: var(--panel); color: var(--tinta-2); box-shadow: inset 0 0 0 2px var(--garis);
+    }
+    .mode button[aria-pressed="true"].datang { background: var(--datang); color: #fff; box-shadow: none; }
+    .mode button[aria-pressed="true"].pulang { background: var(--pulang); color: #fff; box-shadow: none; }
+
+    .kartu { background: var(--panel); border-radius: 16px; padding: 16px 18px; box-shadow: inset 0 0 0 1.5px var(--garis); }
+    .batas-baris { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .jam-besar { font-size: clamp(2.2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+    .ket { color: var(--tinta-2); font-size: .92rem; margin: 6px 0 0; }
+    .btn-garis { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--garis); }
+    .form-batas { margin-top: 14px; display: grid; gap: 4px; }
+    .form-batas label { font-weight: 700; font-size: .92rem; margin-top: 6px; }
+    .form-batas input { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--garis); background: var(--latar); color: var(--tinta); width: 100%; }
+    .aksi { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+    .btn-isi { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; background: var(--tinta); color: var(--latar); }
+    .pesan-err { color: var(--telat); font-weight: 700; font-size: .9rem; min-height: 1.3em; margin: 6px 0 0; }
+    .status-data { margin: 0; }
+    .status-data strong { font-weight: 800; }
+    .antre { font-size: .85rem; font-weight: 700; color: var(--telat); margin: 6px 0 0; }
+    .baris-aksi { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    .btn-scan {
+      margin-top: auto; border: 0; border-radius: 18px; padding: 20px; font-weight: 800; font-size: clamp(1.2rem, 2.2vw, 1.5rem); color: #fff;
+      background: var(--datang);
+    }
+    .btn-scan.pulang { background: var(--pulang); }
+    .btn-scan:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Tablet & laptop: pengaturan dalam dua kolom */
+    @media (min-width: 760px) {
+      #hal1 {
+        max-width: 980px; padding-top: 40px; display: grid; gap: 20px;
+        grid-template-columns: 1fr 1fr; align-content: start;
+        grid-template-areas: "kepala kepala" "mode mode" "batas data" "scan scan";
+      }
+      .kepala { grid-area: kepala; }
+      .blok-mode { grid-area: mode; }
+      .kartu-batas { grid-area: batas; }
+      .kartu-data { grid-area: data; }
+      .btn-scan { grid-area: scan; margin-top: 8px; }
+      .kartu { padding: 20px 22px; }
+    }
+    @media (hover: hover) {
+      .mode button:hover, .btn-garis:hover { box-shadow: inset 0 0 0 2px var(--tinta-2); }
+      .mode button[aria-pressed="true"]:hover { box-shadow: none; filter: brightness(1.06); }
+      .btn-scan:not(:disabled):hover, .btn-isi:hover { filter: brightness(1.08); }
+    }
+
+    /* ===== Halaman 2: scan ===== */
+    #hal2 {
+      /* Lebar kamera menyesuaikan tinggi layar, jadi selalu muat tanpa scroll */
+      --rasio: 3 / 4;
+      --lebar: min(100%, calc((100dvh - 190px) * 3 / 4));
+      min-height: 100dvh; padding: 12px var(--tepi) 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .scan-isi { width: var(--lebar); min-width: min(100%, 280px); display: flex; flex-direction: column; gap: 12px; }
+    .atas { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .atas .antre { margin: 0; margin-left: auto; }
+    .kembali { border: 0; background: none; color: var(--tinta); font-weight: 700; padding: 10px 4px; display: inline-flex; align-items: center; gap: 6px; }
+    .kembali svg { width: 20px; height: 20px; }
+    .chip { font-weight: 800; color: #fff; border-radius: 999px; padding: 6px 14px; background: var(--datang); }
+    .chip.pulang { background: var(--pulang); }
+
+    .bidik { position: relative; background: #0E1716; border-radius: 22px; overflow: hidden; aspect-ratio: var(--rasio); width: 100%; }
+    #reader { width: 100%; height: 100%; }
+    #reader video { width: 100% !important; height: 100% !important; object-fit: cover; }
+    .bidik.cermin #reader video { transform: scaleX(-1); }
+    .sudut { position: absolute; width: 40px; height: 40px; border: 5px solid var(--sudut); pointer-events: none; }
+    .tl { top: 16%; left: 14%; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
+    .tr { top: 16%; right: 14%; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
+    .bl { bottom: 16%; left: 14%; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
+    .br { bottom: 16%; right: 14%; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
+
+    .mulai { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; text-align: center; color: #C9D6D2; padding: 24px; }
+    .bidik.aktif .mulai { display: none; }
+    #mulaiTeks { max-width: 34ch; }
+    .mulai button, .mulai .foto { border: 0; border-radius: 12px; padding: 12px 20px; font-weight: 700; background: var(--sudut); color: #1C2B2A; }
+    .mulai .foto { background: transparent; color: #E6EDE8; box-shadow: inset 0 0 0 2px #C9D6D2; position: relative; cursor: pointer; }
+    .mulai .foto input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+    .hasil { position: absolute; left: 12px; right: 12px; bottom: 12px; border-radius: 16px; padding: clamp(12px, 2vw, 20px) clamp(14px, 2.4vw, 24px); color: #fff; }
+    .hasil.Datang { background: var(--datang); }
+    .hasil.Terlambat { background: var(--telat); }
+    .hasil.Pulang { background: var(--pulang); }
+    .hasil.Gagal { background: #7A1F1F; }
+    .hasil.Sudah { background: #8A6A00; }
+    .hasil .status { font-size: clamp(1.4rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; margin: 0; }
+    .hasil .nama { font-size: clamp(1.1rem, 2.2vw, 1.6rem); font-weight: 800; margin: 6px 0 0; word-break: break-word; }
+    .hasil .meta { margin: 2px 0 0; opacity: .85; font-size: clamp(.85rem, 1.4vw, 1rem); }
+
+    .ganti {
+      border: 0; border-radius: 14px; padding: 14px; font-weight: 700; font-size: 1.05rem;
+      background: var(--panel); color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--garis);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .ganti svg { width: 20px; height: 20px; }
+    .ganti:disabled { opacity: .5; cursor: wait; }
+
+    /* Layar mendatar (laptop, tablet mendatar): kamera 4:3 */
+    @media (orientation: landscape) {
+      #hal2 { --rasio: 4 / 3; --lebar: min(100%, calc((100dvh - 170px) * 4 / 3)); }
+    }
+    /* HP mendatar (layar pendek): tombol ganti di samping kamera */
+    @media (orientation: landscape) and (max-height: 520px) {
+      #hal2 { --lebar: min(100%, calc((100dvh - 80px) * 4 / 3)); padding-top: 8px; padding-bottom: 8px; }
+      .scan-isi { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "atas atas" "bidik ganti"; align-items: end; width: auto; }
+      .atas { grid-area: atas; }
+      .bidik { grid-area: bidik; width: min(calc(100vw - 2 * var(--tepi) - 164px), calc((100dvh - 80px) * 4 / 3)); }
+      .ganti { grid-area: ganti; flex-direction: column; font-size: .9rem; max-width: 140px; }
+      .hasil .status { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="offline" id="pitaOffline" role="status" hidden>Tidak ada sinyal. Scan tetap jalan dan disimpan di perangkat ini.</div>
+
+<!-- ================= HALAMAN 1: PENGATURAN ================= -->
+<section id="hal1">
+  <header class="kepala">
+    <div>
+      <h1>Presensi siswa</h1>
+      <p class="tanggal" id="tanggal"></p>
+    </div>
+    <button class="btn-garis" id="btnPasang" hidden>Pasang aplikasi</button>
+  </header>
+
+  <div class="blok-mode">
+    <p class="judul">Jenis presensi</p>
+    <div class="mode" role="group" aria-label="Jenis presensi">
+      <button class="datang" id="mDatang" aria-pressed="true">Datang</button>
+      <button class="pulang" id="mPulang" aria-pressed="false">Pulang</button>
+    </div>
+  </div>
+
+  <div class="kartu kartu-batas">
+    <p class="judul">Batas jam datang</p>
+    <div class="batas-baris">
+      <span class="jam-besar" id="jamBatas">--:--</span>
+      <button class="btn-garis" id="btnUbah">Ubah batas</button>
+    </div>
+    <p class="ket">Siswa yang scan Datang setelah jam ini tercatat Terlambat.</p>
+    <div class="form-batas" id="formBatas" hidden>
+      <label for="inJam">Jam baru</label>
+      <input type="time" id="inJam">
+      <label for="inPin">PIN admin</label>
+      <input type="password" id="inPin" inputmode="numeric" autocomplete="off">
+      <p class="pesan-err" id="errBatas"></p>
+      <div class="aksi">
+        <button class="btn-garis" id="btnBatal">Batal</button>
+        <button class="btn-isi" id="btnSimpan">Simpan batas</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kartu kartu-data">
+    <p class="judul">Data siswa di perangkat ini</p>
+    <p class="status-data" id="statusData">Memuat…</p>
+    <p class="antre" id="antre1" hidden></p>
+    <div class="baris-aksi"><button class="btn-garis" id="btnMuatUlang" hidden>Muat ulang data siswa</button></div>
+  </div>
+
+  <button class="btn-scan" id="btnScan" disabled>Mulai scan Datang</button>
+</section>
+
+<!-- ================= HALAMAN 2: SCAN ================= -->
+<section id="hal2" hidden>
+  <div class="scan-isi">
+    <div class="atas">
+      <button class="kembali" id="btnKembali">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Selesai
+      </button>
+      <span class="antre" id="antre2" hidden></span>
+      <span class="chip" id="chipMode">Datang</span>
+    </div>
+
+    <div class="bidik" id="bidik">
+      <div id="reader"></div>
+      <span class="sudut tl"></span><span class="sudut tr"></span><span class="sudut bl"></span><span class="sudut br"></span>
+      <div class="mulai" id="mulai">
+        <span id="mulaiTeks">Menyalakan kamera…</span>
+        <button id="btnMulai" hidden>Coba lagi</button>
+        <label class="foto" id="btnFoto" hidden>Foto QR dengan kamera HP
+          <input type="file" id="inFoto" accept="image/*" capture="environment">
+        </label>
+      </div>
+      <div class="hasil" id="hasil" aria-live="assertive" hidden></div>
+    </div>
+
+    <button class="ganti" id="btnGanti" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
+      <span id="gantiTeks">Ganti ke kamera depan</span>
+    </button>
+  </div>
+</section>
+
+<script>
+  /* ====== Untuk GitHub Pages: isi dengan URL Web App (.../exec). Di Apps Script biarkan saja. ====== */
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxLFdCOblvIijCHbTMr0f0hDX-hvIA6Cf3YThOpVrbSwI8PZc1ei6W_dduNwayznu16/exec';
+
+  const JEDA_QR_SAMA_MS = 5000;   // QR yang sama diabaikan selama 5 detik
+  const LAMA_HASIL_MS = 2500;     // lama kartu hasil tampil
+  const SINKRON_MS = 60 * 1000;   // ambil scan dari HP lain tiap 1 menit
+  const $ = (id) => document.getElementById(id);
+  const diGAS = typeof google !== 'undefined' && google.script && google.script.run;
+  const simpanLokal = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const bacaLokal = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } };
+  const hapusLokal = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
+
+  /* ---------- Pemanggil server: google.script.run di GAS, fetch di GitHub ---------- */
+  function panggil(aksi, data) {
+    if (diGAS) {
+      const peta = {
+        config:   ['getConfig', []],
+        awal:     ['getDataAwal', []],
+        hariIni:  ['getHariIni', []],
+        batch:    ['catatBatch', [data.items]],
+        setBatas: ['setBatas', [data.jam, data.pin]]
+      };
+      const [fn, args] = peta[aksi];
+      return new Promise((ok, gagal) =>
+        google.script.run.withSuccessHandler(ok).withFailureHandler(e => gagal(new Error(e.message || e)))[fn](...args));
+    }
+    return fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // tanpa preflight CORS
+      body: JSON.stringify({ aksi, ...data })
+    })
+      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(r.error); return r.data; });
+  }
+
+  /* =====================================================================
+     DATA DI PERANGKAT
+     Daftar siswa & presensi hari ini disimpan di HP, jadi saat scan nama dan
+     status bisa langsung tampil tanpa menunggu server.
+     ===================================================================== */
+  hapusLokal('pinPetugas');   // sisa versi lama
+  let siswaMap = new Map();                 // noInduk -> {panggilan, nama, kelas}
+  let hariIni = { tanggal: '', datang: new Map(), pulang: new Map() };  // noInduk -> {ket, jam}
+  let batas = '07:00';
+  let tz = 'Asia/Jakarta';
+  let selisihJamMs = 0;                     // jam server - jam HP
+  let antrean = JSON.parse(bacaLokal('antrean', '[]'));
+
+  const sekarang = () => Date.now() + selisihJamMs;
+  const fmt = (opsi) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23', ...opsi });
+  const jamMenit = (t) => fmt({ hour: '2-digit', minute: '2-digit' }).format(t);
+  const jamDetik = (t) => fmt({ hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(t);
+  const tanggalKey = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
+
+  function terapkanSiswa(list) {
+    siswaMap = new Map(list.map(([no, panggilan, nama, kelas]) => [no, { panggilan, nama, kelas }]));
+  }
+
+  /** Gabungkan data presensi dari server (termasuk scan dari HP lain). */
+  function terapkanHariIni(d) {
+    tz = d.tz || tz;
+    batas = d.batas || batas;
+    selisihJamMs = d.serverMs - Date.now();
+    if (hariIni.tanggal !== d.tanggal) hariIni = { tanggal: d.tanggal, datang: new Map(), pulang: new Map() };
+    d.datang.forEach(([no, ket, jam]) => { if (!hariIni.datang.has(no)) hariIni.datang.set(no, { ket, jam }); });
+    d.pulang.forEach(([no, ket, jam]) => { if (!hariIni.pulang.has(no)) hariIni.pulang.set(no, { ket, jam }); });
+    $('jamBatas').textContent = batas;
+  }
+
+  function simpanCache(siswaList) {
+    if (siswaList) simpanLokal('cacheSiswa', JSON.stringify(siswaList));
+    simpanLokal('cacheHariIni', JSON.stringify({
+      tanggal: hariIni.tanggal, tz, batas,
+      datang: [...hariIni.datang].map(([no, v]) => [no, v.ket, v.jam]),
+      pulang: [...hariIni.pulang].map(([no, v]) => [no, v.ket, v.jam])
+    }));
+  }
+
+  function cekGantiHari() {
+    const tgl = tanggalKey(sekarang());
+    if (hariIni.tanggal !== tgl) {
+      hariIni = { tanggal: tgl, datang: new Map(), pulang: new Map() };
+      simpanCache();
+    }
+  }
+
+  // Pakai data tersimpan dulu supaya halaman langsung siap, lalu perbarui dari server
+  try {
+    const cs = JSON.parse(bacaLokal('cacheSiswa', 'null'));
+    const ch = JSON.parse(bacaLokal('cacheHariIni', 'null'));
+    if (cs) terapkanSiswa(cs);
+    if (ch) { terapkanHariIni({ ...ch, serverMs: Date.now() }); cekGantiHari(); }
+  } catch (e) {}
+
+  /* ================= HALAMAN 1 ================= */
+  $('tanggal').textContent = new Date().toLocaleDateString('id-ID',
+    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  let mode = bacaLokal('modePresensi', 'datang');
+  function setMode(m) {
+    mode = m;
+    simpanLokal('modePresensi', m);
+    $('mDatang').setAttribute('aria-pressed', m === 'datang');
+    $('mPulang').setAttribute('aria-pressed', m === 'pulang');
+    const label = m === 'pulang' ? 'Pulang' : 'Datang';
+    $('btnScan').textContent = 'Mulai scan ' + label;
+    $('btnScan').className = 'btn-scan ' + m;
+    $('chipMode').textContent = label;
+    $('chipMode').className = 'chip ' + m;
+  }
+  $('mDatang').onclick = () => setMode('datang');
+  $('mPulang').onclick = () => setMode('pulang');
+  setMode(mode);
+
+  function perbaruiStatusData(pesan) {
+    const siap = siswaMap.size > 0;
+    $('btnScan').disabled = !siap;
+    $('btnMuatUlang').hidden = false;
+    if (pesan) { $('statusData').textContent = pesan; return; }
+    $('statusData').innerHTML = siap
+      ? `<strong>${siswaMap.size}</strong> siswa siap. Hari ini: <strong>${hariIni.datang.size}</strong> datang, <strong>${hariIni.pulang.size}</strong> pulang.`
+      : 'Belum ada data siswa.';
+  }
+
+  async function muatAwal() {
+    if (!siswaMap.size) perbaruiStatusData('Mengunduh data siswa…');
+    try {
+      const d = await panggil('awal', {});
+      terapkanSiswa(d.siswa);
+      terapkanHariIni(d);
+      simpanCache(d.siswa);
+      perbaruiStatusData();
+    } catch (err) {
+      const ket = navigator.onLine ? 'Gagal memperbarui: ' + err.message : 'Sedang offline.';
+      perbaruiStatusData(siswaMap.size
+        ? `Memakai data tersimpan: ${siswaMap.size} siswa. ${ket}`
+        : (navigator.onLine ? 'Gagal mengunduh data siswa: ' + err.message
+                            : 'Sedang offline. Data siswa perlu diunduh sekali saat ada sinyal.'));
+    }
+  }
+
+  $('btnMuatUlang').onclick = muatAwal;
+
+  $('btnUbah').onclick = () => {
+    $('inJam').value = /\d\d:\d\d/.test($('jamBatas').textContent) ? $('jamBatas').textContent : '07:00';
+    $('inPin').value = ''; $('errBatas').textContent = '';
+    $('formBatas').hidden = false; $('btnUbah').hidden = true;
+    $('inJam').focus();
+  };
+  $('btnBatal').onclick = () => { $('formBatas').hidden = true; $('btnUbah').hidden = false; };
+  $('btnSimpan').onclick = async () => {
+    $('errBatas').textContent = '';
+    $('btnSimpan').disabled = true;
+    try {
+      const r = await panggil('setBatas', { jam: $('inJam').value, pin: $('inPin').value });
+      batas = r.batas;
+      $('jamBatas').textContent = r.batas;
+      simpanCache();
+      $('btnBatal').onclick();
+    } catch (err) {
+      $('errBatas').textContent = err.message;
+    } finally {
+      $('btnSimpan').disabled = false;
+    }
+  };
+
+  /* ---------- Perpindahan halaman (tombol Back HP ikut berfungsi) ---------- */
+  let dariHal1 = false;
+  $('btnScan').onclick = () => { dariHal1 = true; location.hash = 'scan'; };
+  $('btnKembali').onclick = () => {
+    if (dariHal1) { dariHal1 = false; history.back(); }
+    else location.hash = '';
+  };
+
+  function tampilkanHalaman() {
+    const diScan = location.hash === '#scan' && siswaMap.size > 0;
+    if (location.hash === '#scan' && !diScan) { location.hash = ''; return; }
+    $('hal1').hidden = diScan;
+    $('hal2').hidden = !diScan;
+    window.scrollTo(0, 0);
+    if (diScan) nyalakan(); else { matikan(); perbaruiStatusData(); }
+  }
+  window.addEventListener('hashchange', tampilkanHalaman);
+
+  /* =====================================================================
+     ANTREAN KIRIM
+     Scan langsung dicatat di perangkat, lalu dikirim ke server di latar belakang.
+     Antrean disimpan di HP, jadi tidak hilang walau sinyal putus atau halaman ditutup.
+     ===================================================================== */
+  let mengirim = false;
+  let timerUlang;
+
+  function idAcak() {
+    const huruf = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const acak = crypto.getRandomValues(new Uint8Array(10));
+    return Array.from(acak, b => huruf[b % huruf.length]).join('');
+  }
+
+  function perbaruiInfoAntrean() {
+    const n = antrean.length;
+    const teks = n ? `${n} belum terkirim` : '';
+    ['antre1', 'antre2'].forEach(id => { $(id).textContent = teks; $(id).hidden = !n; });
+  }
+
+  async function kirimAntrean() {
+    if (mengirim || !antrean.length) return;
+    mengirim = true;
+    clearTimeout(timerUlang);
+    timerUlang = null;
+    const paket = antrean.slice(0, 50);
+    try {
+      const r = await panggil('batch', { items: paket });
+      const selesai = new Set(r.hasil.map(h => h.id));
+      antrean = antrean.filter(it => !selesai.has(it.id));
+      simpanLokal('antrean', JSON.stringify(antrean));
+    } catch (err) {
+      console.warn('Kirim tertunda:', err.message);
+      timerUlang = setTimeout(kirimAntrean, 5000);   // coba lagi 5 detik kemudian
+    } finally {
+      mengirim = false;
+      perbaruiInfoAntrean();
+      if (antrean.length && !timerUlang) setTimeout(kirimAntrean, 200);   // sisa antrean > 50
+    }
+  }
+  setInterval(kirimAntrean, 15000);
+  window.addEventListener('online', kirimAntrean);
+
+  function sinkron() {
+    panggil('hariIni', {})
+      .then(d => { terapkanHariIni(d); simpanCache(); if (!$('hal1').hidden) perbaruiStatusData(); })
+      .catch(() => {});
+  }
+  setInterval(sinkron, SINKRON_MS);
+
+  /* ================= HALAMAN 2 ================= */
+  let scanner;
+  let hadap = bacaLokal('hadapKamera', 'environment');   // 'environment' = belakang, 'user' = depan
+  let menyalakan = false;
+  let kameraAktif = false;
+  const riwayatQR = new Map();
+
+  function buatScanner() {
+    if (typeof Html5Qrcode === 'undefined') throw new Error('LIB');
+    return scanner = scanner || new Html5Qrcode('reader', {
+      verbose: false,
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
+  }
+  const opsiScan = { fps: 15 };
+
+  function pesanKamera(err) {
+    const e = String(err && (err.name || '') + ' ' + (err.message || err));
+    if (e.includes('LIB'))
+      return 'Komponen pemindai gagal dimuat. Periksa koneksi internet, lalu muat ulang halaman.';
+    if (!window.isSecureContext || !navigator.mediaDevices)
+      return 'Halaman harus dibuka lewat alamat https://, bukan dari file di komputer atau http://. '
+           + 'Kalau dibuka dari WhatsApp/Instagram, buka lewat Chrome atau Safari.';
+    if (diGAS)
+      return 'Google Apps Script memblokir akses kamera di halamannya. Pakai halaman versi GitHub Pages, '
+           + 'atau sementara ini pakai tombol foto di bawah.';
+    if (/NotAllowed|Permission/i.test(e))
+      return 'Izin kamera ditolak. Klik ikon gembok/kamera di samping alamat situs, izinkan Kamera, lalu muat ulang halaman.';
+    if (/NotReadable|TrackStart|Could not start/i.test(e))
+      return 'Kamera sedang dipakai aplikasi lain (Zoom, Meet, WhatsApp, dll). Tutup aplikasi itu lalu tekan Coba lagi.';
+    if (/NotFound|Overconstrained|no camera/i.test(e))
+      return 'Kamera tidak ditemukan di perangkat ini.';
+    return 'Kamera belum bisa dibuka (' + e.trim() + ').';
+  }
+
+  async function nyalakan() {
+    if (menyalakan || kameraAktif) return;
+    menyalakan = true;
+    $('mulaiTeks').textContent = 'Menyalakan kamera…';
+    $('btnMulai').hidden = true;
+    $('btnFoto').hidden = true;
+    try {
+      const sc = buatScanner();
+      try {
+        await sc.start({ facingMode: hadap }, opsiScan, saatTerbaca, () => {});
+      } catch (err1) {
+        if (/NotAllowed|Permission/i.test(String(err1))) throw err1;
+        const kamera = await Html5Qrcode.getCameras();
+        if (!kamera.length) throw new Error('NotFoundError');
+        await sc.start(kamera[kamera.length - 1].id, opsiScan, saatTerbaca, () => {});
+      }
+      kameraAktif = true;
+      $('bidik').classList.add('aktif');
+      $('bidik').classList.toggle('cermin', hadap === 'user');
+      $('gantiTeks').textContent = hadap === 'user' ? 'Ganti ke kamera belakang' : 'Ganti ke kamera depan';
+      Html5Qrcode.getCameras()
+        .then(list => { $('btnGanti').hidden = list.length < 2; })
+        .catch(() => { $('btnGanti').hidden = true; });
+    } catch (err) {
+      console.error('Kamera:', err);
+      $('mulaiTeks').textContent = pesanKamera(err);
+      $('btnMulai').hidden = false;
+      $('btnFoto').hidden = false;
+    } finally {
+      menyalakan = false;
+      if (location.hash !== '#scan') matikan();
+    }
+  }
+
+  async function matikan() {
+    if (kameraAktif) { kameraAktif = false; try { await scanner.stop(); } catch (e) {} }
+    $('bidik').classList.remove('aktif');
+    $('hasil').hidden = true;
+  }
+
+  $('btnMulai').onclick = nyalakan;
+
+  $('btnGanti').onclick = async () => {
+    $('btnGanti').disabled = true;
+    await matikan();
+    hadap = hadap === 'user' ? 'environment' : 'user';
+    simpanLokal('hadapKamera', hadap);
+    await nyalakan();
+    $('btnGanti').disabled = false;
+  };
+
+  $('inFoto').onchange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const r = await buatScanner().scanFileV2(file, false);
+      saatTerbaca(r.decodedText);
+    } catch (err) {
+      tampilHasil('Gagal', 'QR tidak terbaca', '', 'Foto ulang lebih dekat, terang, dan tidak buram.');
+    }
+  };
+
+  /* ---------- Proses hasil scan: langsung, tanpa menunggu server ---------- */
+  function saatTerbaca(teks) {
+    const no = String(teks).trim();
+    const now = Date.now();
+    if (now - (riwayatQR.get(no) || 0) < JEDA_QR_SAMA_MS) return;
+    riwayatQR.set(no, now);
+
+    const sw = siswaMap.get(no);
+    if (!sw) {
+      tampilHasil('Gagal', 'Tidak terdaftar', 'No Induk ' + no, 'Tidak ada di Data Siswa, jadi tidak dicatat.');
+      bunyi(220); getar([80, 60, 80]);
+      return;
+    }
+
+    cekGantiHari();
+    const daftar = mode === 'pulang' ? hariIni.pulang : hariIni.datang;
+    const baris = sw.panggilan + (sw.kelas ? ' · ' + sw.kelas : '');
+
+    const lama = daftar.get(no);
+    if (lama) {
+      tampilHasil('Sudah', 'Sudah presensi ' + mode, baris, `${sw.nama} · tercatat ${lama.ket} pukul ${lama.jam}`);
+      bunyi(440); setTimeout(() => bunyi(440), 180); getar([60, 60, 60]);
+      return;
+    }
+
+    const t = sekarang();
+    const ket = mode === 'pulang' ? 'Pulang' : (jamMenit(t) > batas ? 'Terlambat' : 'Datang');
+    const jam = jamDetik(t);
+    daftar.set(no, { ket, jam });
+    simpanCache();
+
+    antrean.push({ id: idAcak(), qr: no, mode, t });
+    simpanLokal('antrean', JSON.stringify(antrean));
+    perbaruiInfoAntrean();
+    kirimAntrean();
+
+    const label = { Datang: 'Datang tepat waktu', Terlambat: 'Terlambat', Pulang: 'Pulang' }[ket];
+    tampilHasil(ket, label, baris, `${sw.nama} · ${no} · ${jam}`);
+    bunyi(880); getar(60);
+    if (ket === 'Terlambat') setTimeout(() => bunyi(330), 160);
+  }
+
+  let timerHasil;
+  function tampilHasil(kelas, status, nama, meta) {
+    const el = $('hasil');
+    el.className = 'hasil ' + kelas;
+    el.innerHTML = '';
+    const s = document.createElement('p'); s.className = 'status'; s.textContent = status;
+    const q = document.createElement('p'); q.className = 'nama'; q.textContent = nama;
+    const m = document.createElement('p'); m.className = 'meta'; m.textContent = meta;
+    el.append(s, q, m);
+    el.hidden = false;
+    clearTimeout(timerHasil);
+    timerHasil = setTimeout(() => { el.hidden = true; }, LAMA_HASIL_MS);
+  }
+
+  /* ---------- Suara & getar ---------- */
+  let ctx;
+  function bunyi(freq) {
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = freq; g.gain.value = 0.08;
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.15);
+    } catch (e) {}
+  }
+  function getar(pola) { if (navigator.vibrate) navigator.vibrate(pola); }
+
+  /* ---------- Offline / online ---------- */
+  function perbaruiJaringan() { $('pitaOffline').hidden = navigator.onLine; }
+  window.addEventListener('online', perbaruiJaringan);
+  window.addEventListener('offline', perbaruiJaringan);
+  perbaruiJaringan();
+
+  /* ---------- PWA: simpan halaman untuk dipakai offline ---------- */
+  if ('serviceWorker' in navigator && !diGAS && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker gagal:', err));
+  }
+  let promptPasang = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    promptPasang = e;
+    $('btnPasang').hidden = false;
+  });
+  $('btnPasang').onclick = async () => {
+    if (!promptPasang) return;
+    promptPasang.prompt();
+    await promptPasang.userChoice.catch(() => {});
+    promptPasang = null;
+    $('btnPasang').hidden = true;
+  };
+  window.addEventListener('appinstalled', () => { $('btnPasang').hidden = true; });
+
+  /* ---------- Mulai ---------- */
+  if (!diGAS && API_URL.includes('GANTI_DENGAN')) {
+    alert('API_URL belum diisi. Buka index.html dan isi API_URL dengan URL Web App (.../exec).');
+  }
+  perbaruiInfoAntrean();
+  perbaruiStatusData();
+  tampilkanHalaman();
+  muatAwal();
+  kirimAntrean();
+</script>
+</body>
+</html>
