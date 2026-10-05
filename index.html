@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Presensi Siswa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --latar: #EEF1EC; --tinta: #1C2B2A; --tinta-2: #55625F; --garis: #CBD3CD; --panel: #FFFFFF;
+      --laser: #F2C230;
+      --datang: #2E7D4F; --telat: #C2410C; --pulang: #3B4FA8;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --latar: #142120; --tinta: #E6EDE8; --tinta-2: #9DB0AC; --garis: #2D403D; --panel: #1B2B29; }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: var(--latar); color: var(--tinta);
+      font: 16px/1.45 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+    }
+    main { max-width: 520px; margin: 0 auto; padding: 14px 14px 20px; display: flex; flex-direction: column; gap: 12px; min-height: 100%; }
+
+    /* Pilihan Datang / Pulang */
+    .mode { display: grid; grid-template-columns: 1fr 1fr; background: var(--panel); border-radius: 16px; padding: 5px; gap: 5px; box-shadow: inset 0 0 0 1.5px var(--garis); }
+    .mode button {
+      font: inherit; font-weight: 800; font-size: 1.15rem; border: 0; border-radius: 12px;
+      padding: 14px 8px; background: transparent; color: var(--tinta-2); cursor: pointer;
+    }
+    .mode button[aria-pressed="true"].datang { background: var(--datang); color: #fff; }
+    .mode button[aria-pressed="true"].pulang { background: var(--pulang); color: #fff; }
+
+    /* Pemindai */
+    .bidik { position: relative; background: #0E1716; border-radius: 22px; overflow: hidden; aspect-ratio: 1 / 1; }
+    #reader { width: 100%; height: 100%; }
+    #reader video { width: 100% !important; height: 100% !important; object-fit: cover; }
+    .sudut { position: absolute; width: 38px; height: 38px; border: 5px solid var(--laser); pointer-events: none; }
+    .tl { top: 16px; left: 16px; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
+    .tr { top: 16px; right: 16px; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
+    .bl { bottom: 16px; left: 16px; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
+    .br { bottom: 16px; right: 16px; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
+    .laser { position: absolute; left: 10%; right: 10%; height: 2px; top: 50%; background: var(--laser); box-shadow: 0 0 12px 2px var(--laser); opacity: 0; pointer-events: none; }
+    .bidik.aktif .laser { opacity: .9; animation: sapu 2.2s ease-in-out infinite alternate; }
+    @keyframes sapu { from { top: 18%; } to { top: 82%; } }
+
+    .mulai {
+      position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px;
+      text-align: center; color: #C9D6D2; padding: 24px;
+    }
+    .bidik.aktif .mulai { display: none; }
+    .mulai button, .mulai .foto { font: inherit; font-weight: 700; background: var(--laser); color: #1C2B2A; border: 0; border-radius: 12px; padding: 12px 20px; cursor: pointer; }
+    .mulai .foto { background: transparent; color: #E6EDE8; box-shadow: inset 0 0 0 2px #C9D6D2; position: relative; }
+    .mulai .foto input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .mulai .foto:focus-within { outline: 3px solid var(--laser); outline-offset: 2px; }
+    #mulaiTeks { max-width: 34ch; }
+
+    /* Hasil (muncul di atas kamera) */
+    .hasil {
+      position: absolute; inset: auto 12px 12px 12px; border-radius: 16px; padding: 14px 16px;
+      color: #fff; transform: translateY(130%); transition: transform .22s ease-out;
+    }
+    .hasil.tampil { transform: none; }
+    .hasil.Datang { background: var(--datang); }
+    .hasil.Terlambat { background: var(--telat); }
+    .hasil.Pulang { background: var(--pulang); }
+    .hasil.Gagal { background: #7A1F1F; }
+    .hasil.Proses { background: #33403E; }
+    .hasil.Sudah { background: #8A6A00; }
+    .hasil .status { font-size: 1.6rem; font-weight: 800; line-height: 1.1; margin: 0; }
+    .hasil .nama { font-size: 1.2rem; font-weight: 800; margin: 6px 0 0; word-break: break-word; }
+    .hasil .meta { margin: 2px 0 0; opacity: .85; font-size: .9rem; }
+    @media (prefers-reduced-motion: reduce) { .bidik.aktif .laser { animation: none; } .hasil { transition: none; } }
+
+    /* Batas jam */
+    .batas { display: flex; justify-content: space-between; align-items: center; color: var(--tinta-2); font-size: .95rem; padding: 0 4px; }
+    .batas strong { color: var(--tinta); }
+    .link { font: inherit; font-weight: 700; color: var(--tinta); background: none; border: 0; padding: 8px 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+    dialog { border: 0; border-radius: 18px; padding: 20px; width: min(92vw, 360px); background: var(--panel); color: var(--tinta); }
+    dialog::backdrop { background: rgba(14, 23, 22, .55); }
+    dialog h2 { margin: 0 0 4px; font-size: 1.2rem; }
+    dialog p { margin: 0 0 14px; color: var(--tinta-2); font-size: .92rem; }
+    dialog label { display: block; font-weight: 700; font-size: .92rem; margin: 10px 0 4px; }
+    dialog input { font: inherit; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--garis); background: var(--latar); color: var(--tinta); }
+    .aksi { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .aksi button { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; }
+    .simpan { background: var(--tinta); color: var(--latar); }
+    .batal { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--garis); }
+    .pesan-err { color: var(--telat); font-weight: 700; min-height: 1.3em; margin-top: 8px; font-size: .9rem; }
+
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--laser); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="mode" role="group" aria-label="Jenis presensi">
+    <button class="datang" id="mDatang" aria-pressed="true">Datang</button>
+    <button class="pulang" id="mPulang" aria-pressed="false">Pulang</button>
+  </div>
+
+  <div class="bidik" id="bidik">
+    <div id="reader"></div>
+    <span class="sudut tl"></span><span class="sudut tr"></span><span class="sudut bl"></span><span class="sudut br"></span>
+    <div class="laser"></div>
+    <div class="mulai" id="mulai">
+      <span id="mulaiTeks">Menyalakan kamera…</span>
+      <button id="btnMulai" hidden>Coba lagi</button>
+      <label class="foto" id="btnFoto" hidden>Foto QR dengan kamera HP
+        <input type="file" id="inFoto" accept="image/*" capture="environment">
+      </label>
+    </div>
+    <div class="hasil" id="hasil" aria-live="assertive"></div>
+  </div>
+
+  <div class="batas">
+    <span>Lewat jam <strong id="jamBatas">--:--</strong> tercatat terlambat</span>
+    <button class="link" id="btnAtur">Ubah</button>
+  </div>
+</main>
+
+<dialog id="dlg">
+  <h2>Batas jam datang</h2>
+  <p>Siswa yang memindai setelah jam ini tercatat Terlambat.</p>
+  <label for="inJam">Jam</label>
+  <input type="time" id="inJam" required>
+  <label for="inPin">PIN admin</label>
+  <input type="password" id="inPin" inputmode="numeric" autocomplete="off">
+  <div class="pesan-err" id="dlgErr"></div>
+  <div class="aksi">
+    <button class="batal" id="dlgBatal">Batal</button>
+    <button class="simpan" id="dlgSimpan">Simpan batas</button>
+  </div>
+</dialog>
+
+<script>
+  /* ====== Untuk GitHub Pages: isi dengan URL Web App (.../exec). Di Apps Script biarkan saja. ====== */
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwSQRvkeUUAQimeuZRTMl9XfRvabD7hULxx1ZBH0E5zfXY1H5y50YbDNAKTqFCXiciM/exec';
+
+  const JEDA_QR_SAMA_MS = 8000;   // QR yang sama diabaikan selama 8 detik
+  const LAMA_HASIL_MS = 3000;     // lama kartu hasil tampil
+  const $ = (id) => document.getElementById(id);
+  const diGAS = typeof google !== 'undefined' && google.script && google.script.run;
+
+  /* ---- Pemanggil server: google.script.run di GAS, fetch di GitHub ---- */
+  function panggil(aksi, data) {
+    if (diGAS) {
+      const fn = { scan: 'catatPresensi', setBatas: 'setBatas', config: 'getConfig' }[aksi];
+      const args = aksi === 'scan' ? [data.qr, data.mode] : aksi === 'setBatas' ? [data.jam, data.pin] : [];
+      return new Promise((ok, gagal) =>
+        google.script.run.withSuccessHandler(ok).withFailureHandler(e => gagal(new Error(e.message || e)))[fn](...args));
+    }
+    // text/plain menghindari preflight CORS sehingga Apps Script bisa menerimanya
+    return fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ aksi, ...data })
+    })
+      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(r.error); return r.data; });
+  }
+
+  /* ---- Mode Datang / Pulang ---- */
+  let mode = 'datang';
+  try { mode = localStorage.getItem('modePresensi') || 'datang'; } catch (e) {}
+  function setMode(m) {
+    mode = m;
+    $('mDatang').setAttribute('aria-pressed', m === 'datang');
+    $('mPulang').setAttribute('aria-pressed', m === 'pulang');
+    try { localStorage.setItem('modePresensi', m); } catch (e) {}
+  }
+  $('mDatang').onclick = () => setMode('datang');
+  $('mPulang').onclick = () => setMode('pulang');
+  setMode(mode);
+
+  /* ---- Kamera ---- */
+  let scanner;
+  const riwayatQR = new Map();   // qr -> waktu terakhir dipindai
+
+  function buatScanner() {
+    if (typeof Html5Qrcode === 'undefined') throw new Error('LIB');
+    return scanner = scanner || new Html5Qrcode('reader', {
+      verbose: false,
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
+  }
+
+  const opsiScan = { fps: 12, qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.7); return { width: s, height: s }; } };
+
+  /** Terjemahkan error kamera menjadi petunjuk yang bisa ditindaklanjuti. */
+  function pesanKamera(err) {
+    const e = String(err && (err.name || '') + ' ' + (err.message || err));
+    if (e.includes('LIB'))
+      return 'Komponen pemindai gagal dimuat. Periksa koneksi internet, lalu muat ulang halaman.';
+    if (!window.isSecureContext || !navigator.mediaDevices)
+      return 'Halaman harus dibuka lewat alamat https://, bukan dari file di komputer atau http://. '
+           + 'Kalau dibuka dari WhatsApp/Instagram, buka lewat Chrome atau Safari.';
+    if (diGAS)
+      return 'Google Apps Script memblokir akses kamera di halamannya. Pakai halaman versi GitHub Pages, '
+           + 'atau sementara ini pakai tombol foto di bawah.';
+    if (/NotAllowed|Permission/i.test(e))
+      return 'Izin kamera ditolak. Klik ikon gembok/kamera di samping alamat situs, izinkan Kamera, lalu muat ulang halaman.';
+    if (/NotReadable|TrackStart|Could not start/i.test(e))
+      return 'Kamera sedang dipakai aplikasi lain (Zoom, Meet, WhatsApp, dll). Tutup aplikasi itu lalu tekan Coba lagi.';
+    if (/NotFound|Overconstrained|no camera/i.test(e))
+      return 'Kamera tidak ditemukan di perangkat ini.';
+    return 'Kamera belum bisa dibuka (' + e.trim() + ').';
+  }
+
+  async function nyalakan() {
+    $('mulaiTeks').textContent = 'Menyalakan kamera…';
+    $('btnMulai').hidden = true;
+    $('btnFoto').hidden = true;
+    try {
+      const sc = buatScanner();
+      try {
+        // HP: kamera belakang
+        await sc.start({ facingMode: 'environment' }, opsiScan, saatTerbaca, () => {});
+      } catch (err1) {
+        // Laptop/PC: pakai kamera apa pun yang tersedia
+        if (/NotAllowed|Permission/i.test(String(err1))) throw err1;
+        const kamera = await Html5Qrcode.getCameras();
+        if (!kamera.length) throw new Error('NotFoundError');
+        await sc.start(kamera[kamera.length - 1].id, opsiScan, saatTerbaca, () => {});
+      }
+      $('bidik').classList.add('aktif');
+    } catch (err) {
+      console.error('Kamera:', err);
+      $('mulaiTeks').textContent = pesanKamera(err);
+      $('btnMulai').hidden = false;
+      $('btnFoto').hidden = false;
+    }
+  }
+
+  // Cadangan: foto QR lewat aplikasi kamera bawaan HP (tetap jalan walau kamera live diblokir)
+  $('inFoto').onchange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const r = await buatScanner().scanFileV2(file, false);
+      saatTerbaca(r.decodedText);
+    } catch (err) {
+      tampilHasil('Gagal', 'QR tidak terbaca', '', 'Foto ulang lebih dekat, terang, dan tidak buram.');
+    }
+  };
+
+  $('btnMulai').onclick = nyalakan;
+
+  let sibuk = false;
+  async function saatTerbaca(teks) {
+    const now = Date.now();
+    if (sibuk) return;
+    if (now - (riwayatQR.get(teks) || 0) < JEDA_QR_SAMA_MS) return;
+    riwayatQR.set(teks, now);
+    sibuk = true;
+    bunyi(880); getar(60);
+    tampilHasil('Proses', 'Memeriksa…', 'No Induk ' + teks, '', true);
+    try {
+      const r = await panggil('scan', { qr: teks, mode });
+
+      if (r.tidakTerdaftar) {
+        tampilHasil('Gagal', 'Tidak terdaftar', 'No Induk ' + r.qr,
+          'Tidak ada di Data Siswa, jadi tidak dicatat.');
+        bunyi(220); getar([80, 60, 80]);
+        return;
+      }
+
+      const sw = r.siswa;
+      const baris = sw.panggilan + (sw.kelas ? ' · ' + sw.kelas : '');
+      if (r.duplikat) {
+        const jenis = r.keterangan === 'Pulang' ? 'pulang' : 'datang';
+        tampilHasil('Sudah', 'Sudah presensi ' + jenis, baris,
+          `${sw.nama} · tercatat ${r.keterangan} pukul ${r.waktu}`);
+        bunyi(440); setTimeout(() => bunyi(440), 180); getar([60, 60, 60]);
+        return;
+      }
+
+      const label = { Datang: 'Datang tepat waktu', Terlambat: 'Terlambat', Pulang: 'Pulang' }[r.keterangan];
+      tampilHasil(r.keterangan, label, baris, `${sw.nama} · ${sw.noInduk} · ${r.waktu}`);
+      if (r.keterangan === 'Terlambat') bunyi(330);
+    } catch (err) {
+      riwayatQR.delete(teks);   // boleh dipindai ulang
+      tampilHasil('Gagal', 'Belum tersimpan', teks, err.message + ' Pindai ulang.');
+      bunyi(220); getar([80, 60, 80]);
+    } finally {
+      sibuk = false;
+    }
+  }
+
+  let timerHasil;
+  function tampilHasil(kelas, status, nama, meta, menunggu) {
+    const el = $('hasil');
+    el.className = 'hasil tampil ' + kelas;
+    el.innerHTML = '';
+    const s = document.createElement('p'); s.className = 'status'; s.textContent = status;
+    const q = document.createElement('p'); q.className = 'nama'; q.textContent = nama;
+    const m = document.createElement('p'); m.className = 'meta'; m.textContent = meta;
+    el.append(s, q, m);
+    clearTimeout(timerHasil);
+    if (!menunggu) timerHasil = setTimeout(() => el.classList.remove('tampil'), LAMA_HASIL_MS);
+  }
+
+  /* ---- Batas jam datang ---- */
+  function muatBatas() {
+    panggil('config', {}).then(c => $('jamBatas').textContent = c.batas)
+      .catch(() => $('jamBatas').textContent = '--:--');
+  }
+  $('btnAtur').onclick = () => {
+    $('inJam').value = /\d\d:\d\d/.test($('jamBatas').textContent) ? $('jamBatas').textContent : '07:00';
+    $('inPin').value = ''; $('dlgErr').textContent = '';
+    $('dlg').showModal();
+  };
+  $('dlgBatal').onclick = () => $('dlg').close();
+  $('dlgSimpan').onclick = async () => {
+    $('dlgErr').textContent = '';
+    $('dlgSimpan').disabled = true;
+    try {
+      const r = await panggil('setBatas', { jam: $('inJam').value, pin: $('inPin').value });
+      $('jamBatas').textContent = r.batas;
+      $('dlg').close();
+    } catch (err) {
+      $('dlgErr').textContent = err.message;
+    } finally {
+      $('dlgSimpan').disabled = false;
+    }
+  };
+
+  /* ---- Umpan balik suara & getar ---- */
+  let ctx;
+  function bunyi(freq) {
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = freq; g.gain.value = 0.08;
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.15);
+    } catch (e) {}
+  }
+  function getar(pola) { if (navigator.vibrate) navigator.vibrate(pola); }
+
+  if (!diGAS && API_URL.includes('GANTI_DENGAN')) {
+    alert('API_URL belum diisi. Buka index.html dan isi API_URL dengan URL Web App (.../exec).');
+  }
+  muatBatas();
+  setInterval(muatBatas, 5 * 60 * 1000);   // sinkron jika batas diubah dari HP lain
+  nyalakan();
+</script>
+</body>
+</html>
